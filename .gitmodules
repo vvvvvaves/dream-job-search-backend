@@ -1,0 +1,3 @@
+[submodule "submodules/linkedin_api"]
+	path = submodules/linkedin_api
+	url = https://github.com/vvvvvaves/linkedin-api
