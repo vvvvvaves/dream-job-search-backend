@@ -242,12 +242,27 @@ class DreamJobSearch:
             urls=urls,
             on_batch_complete=add_job_postings_to_sheet
         )
+    
+    def score_job_postings(self, keywords):
+        """
+        This function scores job postings based on the amount of keywords they contain. 
+        It returns a dataframe with the job postings and the keywords it contains.
+        The matching is done by checking the job description.
+        The score is the number of keywords that are matched.
+        """
+        job_posting_df = self.job_posting_sheet_handler.get_dataframe()
+        job_posting_df["matched_keywords"] = job_posting_df["job_description"].apply(lambda x: ', '.join([keyword for keyword in keywords if keyword.lower() in x.lower()]))
+        job_posting_df["score"] = job_posting_df["matched_keywords"].apply(lambda x: len(x.split(', ')))
+        return job_posting_df
 
 
 def main():
     dream_job_search = DreamJobSearch(creds_path="creds.json", client_secret_path="client_secret.json", spreadsheet_data_path="spreadsheet_data.json")
-    dream_job_search.search_for_jobs(queries=["AI Safety", "Responsible AI", "Full-stack python"], locations=["Poland"], num_jobs_per_search=60)
-    dream_job_search.scrape_job_postings()
+    results = dream_job_search.score_job_postings(keywords=["python", "React", "Azure", "prompt engineering", "web scraping", "selenium", "playwright", "beautifulsoup", "beautiful soup", "beautifulsoup4", "beautifulsoup3", "beautifulsoup2", "beautifulsoup1", "beautifulsoup0", "beautifulsoup-4", "beautifulsoup-3", "beautifulsoup-2", "beautifulsoup-1", "beautifulsoup-0"])
+    results = results[["score", "matched_keywords", "link"]].sort_values(by="score", ascending=False).head(10)
+    for index, row in results.iterrows():
+        print(f"Score: {row['score']}, Matched Keywords: {row['matched_keywords']}, Link: {row['link']}")
+        print("-"*100)
 
 if __name__ == "__main__":
     main()
