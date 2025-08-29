@@ -1,0 +1,11 @@
+client_secret.json
+creds.json
+spreadsheet_data.json
+debug.html
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyw
+*.pyz
+*.pywz

@@ -1,0 +1,10 @@
+{
+    "properties": {
+        "link": {
+            "type": "string"
+        },
+        "added_at": {
+            "type": "string"
+        }
+    }
+}
