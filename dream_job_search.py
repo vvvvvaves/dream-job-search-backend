@@ -243,7 +243,7 @@ class DreamJobSearch:
             on_batch_complete=add_job_postings_to_sheet
         )
     
-    def score_job_postings(self, keywords):
+    def score_job_postings(self, keywords, location = None):
         """
         This function scores job postings based on the amount of keywords they contain. 
         It returns a dataframe with the job postings and the keywords it contains.
@@ -251,13 +251,32 @@ class DreamJobSearch:
         The score is the number of keywords that are matched.
         """
         job_posting_df = self.job_posting_sheet_handler.get_dataframe()
+        if location:
+            job_posting_df = job_posting_df[job_posting_df["location"] == location]
         job_posting_df["matched_keywords"] = job_posting_df["job_description"].apply(lambda x: ', '.join([keyword for keyword in keywords if keyword.lower() in x.lower()]))
         job_posting_df["score"] = job_posting_df["matched_keywords"].apply(lambda x: len(x.split(', ')))
         return job_posting_df
 
+    def update_database(self, locations, queries):
+        """
+        This function updates the database with the new job postings.
+        The Selenium server is now automatically managed by the ParallelScraper class.
+        """
+        self.search_for_jobs(queries, locations)
+        self.scrape_job_postings()
+        self.linkedin_job_search_scraper.force_cleanup_all()
+        self.linkedin_job_posting_scraper.force_cleanup_all()
+
+    def find_jobs_by_keywords(self, keywords, location = None):
+        """
+        This function finds jobs by keywords.
+        """
+        job_posting_df = self.score_job_postings(keywords, location)
+        return job_posting_df[["score", "matched_keywords", "link", "job_title", "job_company", "job_location"]].sort_values(by="score", ascending=False)
 
 def main():
     dream_job_search = DreamJobSearch(creds_path="creds.json", client_secret_path="client_secret.json", spreadsheet_data_path="spreadsheet_data.json")
+    dream_job_search.update_database(locations=["Poland"], queries=["AI Agent", "AI Engineer", "AI Developer", "AI Specialist", "AI Analyst", "AI Consultant", "AI Trainer", "AI Researcher", "AI Strategist", "AI Architect", "AI Safety", "Responsible AI"])
     results = dream_job_search.score_job_postings(keywords=["python", "React", "Azure", "prompt engineering", "web scraping", "selenium", "playwright", "beautifulsoup", "beautiful soup", "beautifulsoup4", "beautifulsoup3", "beautifulsoup2", "beautifulsoup1", "beautifulsoup0", "beautifulsoup-4", "beautifulsoup-3", "beautifulsoup-2", "beautifulsoup-1", "beautifulsoup-0"])
     results = results[["score", "matched_keywords", "link"]].sort_values(by="score", ascending=False).head(10)
     for index, row in results.iterrows():
