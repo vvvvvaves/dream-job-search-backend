@@ -17,7 +17,7 @@ class JobPostings(BaseModel):
 
 class JobPostingRequest(BaseModel):
     keywords: list[str]
-    location: str = None
+    location: str | None = None
 
 class UpdateDatabaseRequest(BaseModel):
     locations: list[str]
@@ -39,12 +39,12 @@ app.add_middleware(
 
 dream_job_search = DreamJobSearch(creds_path="creds.json", client_secret_path="client_secret.json", spreadsheet_data_path="spreadsheet_data.json")
 
-@app.get("/job-postings", response_model=JobPostings)
+@app.post("/job-postings", response_model=JobPostings)
 async def get_job_postings(request: JobPostingRequest):
     keywords = request.keywords
     location = request.location
     response = dream_job_search.find_jobs_by_keywords(keywords=keywords, location=location)
-    return JobPostings(job_postings=response.to_dict(orient="records", index=False))
+    return JobPostings(job_postings=response.to_dict(orient="records"))
 
 @app.post("/update-database")
 async def update_database(request: UpdateDatabaseRequest):
