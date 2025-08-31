@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 class DreamJobSearch:
-    def __init__(self, creds_path, client_secret_path, spreadsheet_data_path=None):
+    def __init__(self, client_secret_path, creds_path, spreadsheet_data_path=None):
         self.job_search_sheet_handler = SheetHandler(creds_path, client_secret_path)
         self.job_posting_sheet_handler = SheetHandler(creds_path, client_secret_path)
         self.linkedin_job_search_schema_path = "job_search_schema.json"
@@ -253,8 +253,24 @@ class DreamJobSearch:
         job_posting_df = self.job_posting_sheet_handler.get_dataframe()
         if location:
             job_posting_df = job_posting_df[job_posting_df["location"] == location]
-        job_posting_df["matched_keywords"] = job_posting_df["job_description"].apply(lambda x: ', '.join([keyword for keyword in keywords if keyword.lower() in x.lower()]))
-        job_posting_df["score"] = job_posting_df["matched_keywords"].apply(lambda x: len(x.split(', ')))
+        
+        # Find matched keywords for each job posting
+        def find_matched_keywords(job_description):
+            matched = [keyword for keyword in keywords if keyword.lower() in job_description.lower()]
+            result = ', '.join(matched) if matched else ""
+            return result
+        
+        job_posting_df["matched_keywords"] = job_posting_df["job_description"].apply(find_matched_keywords)
+        
+        # Calculate score based on matched keywords
+        def calculate_score(matched_keywords):
+            if not matched_keywords:  # Empty string
+                return 0
+            return len(matched_keywords.split(', '))
+        
+        job_posting_df["score"] = job_posting_df["matched_keywords"].apply(calculate_score)
+        
+
         return job_posting_df
 
     def update_database(self, locations, queries):
@@ -272,6 +288,7 @@ class DreamJobSearch:
         This function finds jobs by keywords.
         """
         job_posting_df = self.score_job_postings(keywords, location)
+        job_posting_df = job_posting_df[job_posting_df["score"] > 0]
         return job_posting_df[["score", "matched_keywords", "link", "job_title", "job_company", "job_location"]].sort_values(by="score", ascending=False)
 
 def main():
