@@ -1,7 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 import uvicorn
+import asyncio
+import concurrent.futures
 from dream_job_search import DreamJobSearch
 
 class JobPosting(BaseModel):
@@ -46,6 +49,26 @@ app.add_middleware(
 )
 
 dream_job_search = None
+subscribers = []
+
+@app.get("/logs")
+async def logs():
+    queue = asyncio.Queue()
+    subscribers.append(queue)
+    print(f"New subscriber added. Total subscribers: {len(subscribers)}")
+
+    async def event_generator():
+        try:
+            while True:
+                print(f"Waiting for message in queue {id(queue)}...")
+                msg = await queue.get()
+                print(f"Received message in queue {id(queue)}: {msg}")
+                yield f"data: {msg}\n\n"
+        finally:
+            subscribers.remove(queue)
+            print(f"Subscriber removed. Total subscribers: {len(subscribers)}")
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.post("/login")
 async def login():
@@ -54,7 +77,12 @@ async def login():
     """
     global dream_job_search
     try:
-        dream_job_search = DreamJobSearch(client_secret_path="client_secret.json", creds_path="creds.json", spreadsheet_data_path="spreadsheet_data.json")
+        dream_job_search = DreamJobSearch(
+            client_secret_path="client_secret.json", 
+            creds_path="creds.json", 
+            spreadsheet_data_path="spreadsheet_data.json",
+            log_subscribers=subscribers
+            )
         return {"message": "Logged in successfully", "status": "success"}
     except Exception as e:
         print(f"Login error: {str(e)}")
@@ -115,7 +143,16 @@ async def update_database(request: UpdateDatabaseRequest):
     try:
         locations = request.locations
         queries = request.queries
-        dream_job_search.update_database(locations=locations, queries=queries)
+        # Run the database update in a separate thread to avoid blocking the event loop
+        loop = asyncio.get_event_loop()
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            await loop.run_in_executor(
+                executor, 
+                dream_job_search.update_database, 
+                locations, 
+                queries
+            )
+        
         return {"message": "Database updated successfully", "status": "success"}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database update failed: {str(e)}")

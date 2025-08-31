@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 class DreamJobSearch:
-    def __init__(self, client_secret_path, creds_path, spreadsheet_data_path=None):
+    def __init__(self, client_secret_path, creds_path, spreadsheet_data_path=None, log_subscribers=None):
         self.job_search_sheet_handler = SheetHandler(creds_path, client_secret_path)
         self.job_posting_sheet_handler = SheetHandler(creds_path, client_secret_path)
         self.linkedin_job_search_schema_path = "job_search_schema.json"
@@ -17,6 +17,11 @@ class DreamJobSearch:
         self.spreadsheet_data_path = spreadsheet_data_path
         self.creds_path = creds_path
         self.client_secret_path = client_secret_path
+        self.log_subscribers = log_subscribers
+        
+        # Add logging method        
+        self.log_message("🚀 Initializing DreamJobSearch...")
+        
         if os.path.exists(self.spreadsheet_data_path):
             with open(self.spreadsheet_data_path, "r") as f:
                 self.spreadsheet_data = json.load(f)
@@ -26,11 +31,40 @@ class DreamJobSearch:
             self.job_posting_sheet_handler.sheet_id = self.spreadsheet_data["job_posting_sheet_id"]
             self.job_search_sheet_handler.columns = self.spreadsheet_data["job_search_columns"]
             self.job_posting_sheet_handler.columns = self.spreadsheet_data["job_posting_columns"]
-            print(f"✓ Loaded existing sheet with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}, job_search_sheet_id={self.job_search_sheet_handler.sheet_id}, job_posting_sheet_id={self.job_posting_sheet_handler.sheet_id}")
+            self.log_message(f"📊 Loaded existing sheet with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}")
         else:
+            self.log_message("📝 Creating new spreadsheet...")
             self.setup_sheet()
         
         self.setup_scrapers()
+        self.log_message("🎉 DreamJobSearch initialization completed!")
+
+    def log_message(self, message):
+        """Send log message to all subscribers if available"""
+        print(f"DEBUG: log_subscribers = {self.log_subscribers}")
+        if self.log_subscribers is not None:
+            print(f"DEBUG: Sending message to {len(self.log_subscribers)} subscribers: {message}")
+            self._safe_send_to_subscribers(message)
+        print(message)
+    
+    def _safe_send_to_subscribers(self, message: str):
+        """Safely send message to asyncio queue subscribers from any thread"""
+        if not self.log_subscribers:
+            return
+            
+        for subscriber in self.log_subscribers:
+            try:
+                # Use call_soon_threadsafe to safely put messages in asyncio queues from different threads
+                import asyncio
+                try:
+                    loop = asyncio.get_running_loop()
+                    # We're in a different thread, use call_soon_threadsafe
+                    loop.call_soon_threadsafe(subscriber.put_nowait, message)
+                except RuntimeError:
+                    # No running loop, we're in the main thread
+                    subscriber.put_nowait(message)
+            except Exception as e:
+                print(f"Error sending message to subscriber: {subscriber}, Error: {e}")
 
     def extract_job_id(self, linkedin_url):
         """Extract the 10-digit job ID from a LinkedIn job URL."""
@@ -82,11 +116,14 @@ class DreamJobSearch:
         return filtered_items
 
     def setup_sheet(self, title = "Dream Job Search"):
+        self.log_message(f"📝 Creating new spreadsheet: {title}")
         self.job_search_sheet_handler.create_spreadsheet(title)
+        self.log_message("📊 Adding Job Search Results sheet...")
         self.job_search_sheet_handler.add_sheet_to_spreadsheet(sheet_title="Job Search Results")
         self.job_search_sheet_handler.create_table_from_schema(self.linkedin_job_search_schema_path, "Job Search Results", 0, 0)
         
         self.job_posting_sheet_handler.spreadsheet_id = self.job_search_sheet_handler.spreadsheet_id
+        self.log_message("📄 Adding Job Postings sheet...")
         self.job_posting_sheet_handler.add_sheet_to_spreadsheet(sheet_title="Job Postings")
         self.job_posting_sheet_handler.create_table_from_schema(self.linkedin_job_posting_schema_path, "Job Postings", 0, 0)
 
@@ -101,9 +138,10 @@ class DreamJobSearch:
 
         with open(self.spreadsheet_data_path, "w") as f:
             json.dump(self.spreadsheet_data, f)
-        print(f"✓ Created sheet '{title}' with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}, job_search_sheet_id={self.job_search_sheet_handler.sheet_id}, job_posting_sheet_id={self.job_posting_sheet_handler.sheet_id}")
+        self.log_message(f"✅ Created sheet '{title}' with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}")
 
     def setup_scrapers(self):
+        self.log_message("🔧 Setting up LinkedIn scrapers...")
         human_behavior_config={
                 "reading_time_min": 1.0,
                 "reading_time_max": 10.0,
@@ -125,6 +163,8 @@ class DreamJobSearch:
                 "mouse_speed_min": 0.5,
                 "mouse_speed_max": 2.0
             }
+        
+        self.log_message("🔍 Initializing job search scraper...")
         self.linkedin_job_search_scraper = ParallelJobSearchScraper(
             queries=None, 
             locations=None, 
@@ -140,9 +180,11 @@ class DreamJobSearch:
             max_retries=3,
             batch_size=20,
             enable_human_behavior=True,
-            human_behavior_config=human_behavior_config
+            human_behavior_config=human_behavior_config,
+            log_subscribers=self.log_subscribers
             )
 
+        self.log_message("📄 Initializing job posting scraper...")
         self.linkedin_job_posting_scraper = ParallelJobPostingScraper(
             urls=None,
             max_workers=4,  # Reduced from 8 for better rate limiting
@@ -156,15 +198,18 @@ class DreamJobSearch:
             max_retries=3,
             batch_size=20,
             enable_human_behavior=True,
-            human_behavior_config=human_behavior_config
+            human_behavior_config=human_behavior_config,
+            log_subscribers=self.log_subscribers
         )
+        self.log_message("✅ Scrapers initialized successfully")
 
     def search_for_jobs(self, queries, locations, published_after=None, num_jobs_per_search=60):
+        self.log_message(f"🔍 Starting job search for {len(queries)} queries across {len(locations)} locations")
         
         def add_jobs_to_sheet(batch_results):
             if isinstance(batch_results[0], list):
                 batch_results = [item for sublist in batch_results for item in sublist]
-            print(f"✓ Scraped {len(batch_results)} job links")
+            self.log_message(f"✅ Scraped {len(batch_results)} job links")
             added_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             rows = [{"link": link, "added_at": added_at} for link in batch_results]
             
@@ -181,7 +226,7 @@ class DreamJobSearch:
                 fallback_filter_func=fallback_filter
             )
             
-            print(f"✓ Adding {len(filtered_rows)} new job links to sheet")
+            self.log_message(f"📝 Adding {len(filtered_rows)} new job links to sheet")
             if filtered_rows:
                 self.job_search_sheet_handler.add_rows_to_sheet(
                     filtered_rows,  
@@ -197,9 +242,10 @@ class DreamJobSearch:
         )
 
     def scrape_job_postings(self):
+        self.log_message("📄 Starting job posting scraping process...")
 
         def add_job_postings_to_sheet(batch_results):
-            print(f"✓ Scraped {len(batch_results)} job postings")
+            self.log_message(f"✅ Scraped {len(batch_results)} job postings")
             added_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             for result in batch_results:
                 result["added_at"] = added_at
@@ -214,7 +260,7 @@ class DreamJobSearch:
                 fallback_filter_func=None
             )
             
-            print(f"✓ Adding {len(filtered_results)} new job postings to sheet")
+            self.log_message(f"📝 Adding {len(filtered_results)} new job postings to sheet")
             if filtered_results:
                 self.job_posting_sheet_handler.add_rows_to_sheet(
                     filtered_results,
@@ -236,8 +282,10 @@ class DreamJobSearch:
             fallback_filter_func=url_fallback_filter
         )
         if len(urls) == 0:
-            print("✓ No new job links to scrape")
+            self.log_message("ℹ️ No new job links to scrape")
             return
+        
+        self.log_message(f"🔗 Found {len(urls)} URLs to scrape for job postings")
         self.linkedin_job_posting_scraper.scrape_parallel(
             urls=urls,
             on_batch_complete=add_job_postings_to_sheet
@@ -278,10 +326,25 @@ class DreamJobSearch:
         This function updates the database with the new job postings.
         The Selenium server is now automatically managed by the ParallelScraper class.
         """
-        self.search_for_jobs(queries, locations)
-        self.scrape_job_postings()
-        self.linkedin_job_search_scraper.force_cleanup_all()
-        self.linkedin_job_posting_scraper.force_cleanup_all()
+        self.log_message(f"🚀 Starting database update with {len(locations)} locations and {len(queries)} queries")
+        self.log_message(f"📍 Locations: {', '.join(locations)}")
+        self.log_message(f"🔍 Queries: {', '.join(queries)}")
+        
+        try:
+            self.log_message("🔎 Searching for jobs...")
+            self.search_for_jobs(queries, locations)
+            
+            self.log_message("📄 Scraping job postings...")
+            self.scrape_job_postings()
+            
+            self.log_message("🧹 Cleaning up scrapers...")
+            self.linkedin_job_search_scraper.force_cleanup_all()
+            self.linkedin_job_posting_scraper.force_cleanup_all()
+            
+            self.log_message("✅ Database update completed successfully!")
+        except Exception as e:
+            self.log_message(f"❌ Error during database update: {str(e)}")
+            raise
 
     def find_jobs_by_keywords(self, keywords, location = None):
         """
