@@ -1,0 +1,149 @@
+altgraph==0.17.4
+annotated-types==0.7.0
+anyio==4.9.0
+asgiref==3.8.1
+attrs==25.3.0
+babel==2.17.0
+bcrypt==4.3.0
+beautifulsoup4==4.13.4
+Bottleneck @ file:///C:/b/abs_816hr2khp1/croot/bottleneck_1731058648110/work
+brotlicffi @ file:///C:/b/abs_f4lixvzmxt/croot/brotlicffi_1736183286104/work
+build==1.2.2.post1
+CacheControl==0.14.3
+cachetools==5.5.2
+certifi @ file:///C:/b/abs_2bz30lzohz/croot/certifi_1754570654565/work/certifi
+cffi==1.17.1
+channels==4.0.0
+channels-redis==4.2.0
+charset-normalizer==3.4.1
+cleo==2.1.0
+click @ file:///C:/b/abs_bbg7qqz4dk/croot/click_1754477951021/work
+colorama==0.4.6
+contourpy==1.3.2
+crashtest==0.4.1
+cryptography==45.0.5
+cycler==0.12.1
+distlib==0.3.9
+dj-rest-auth==7.0.1
+Django==5.2.1
+django-allauth==65.9.0
+django-cors-headers==4.7.0
+djangorestframework==3.16.0
+djangorestframework_simplejwt==5.5.0
+docxcompose==1.4.0
+dotenv==0.9.9
+dulwich==0.22.8
+ecdsa==0.19.1
+fastapi @ file:///C:/Users/dev-admin/buildout/croot/fastapi_1735852737589/work
+fastjsonschema==2.21.1
+filelock==3.18.0
+findpython==0.6.3
+fonttools==4.58.1
+google-api-core==2.25.1
+google-api-python-client==2.108.0
+google-auth==2.23.4
+google-auth-httplib2==0.1.1
+google-auth-oauthlib==1.1.0
+googleapis-common-protos==1.70.0
+greenlet==3.2.3
+h11==0.16.0
+httpcore==1.0.9
+httplib2==0.22.0
+httpx==0.28.1
+idna==3.10
+installer==0.7.0
+jaraco.classes==3.4.0
+jaraco.context==6.0.1
+jaraco.functools==4.1.0
+keyring==25.6.0
+kiwisolver==1.4.8
+lxml==5.4.0
+Markdown==3.8.2
+markdownify==1.2.0
+matplotlib==3.10.3
+mkl-service==2.4.0
+mkl_fft @ file:///C:/b/abs_64riv3lfyn/croot/mkl_fft_1751310924052/work
+mkl_random @ file:///C:/b/abs_47jvsmau4j/croot/mkl_random_1751310922820/work
+more-itertools==10.7.0
+msal==1.32.3
+msgpack==1.1.0
+numexpr @ file:///C:/b/abs_3buvfgcf6r/croot/numexpr_1755766488094/work
+numpy==2.2.6
+oauth2client==4.1.3
+oauthlib==3.3.1
+outcome==1.3.0.post0
+packaging==25.0
+pandas @ file:///C:/b/abs_58a1hlvjeo/croot/pandas_1756466410850/work/dist/pandas-2.3.2-cp313-cp313-win_amd64.whl#sha256=e3d25986bd6f7ec53acbba8bf94ee4f49c11b115835d0b9a4c62809e4f788a80
+passlib==1.7.4
+pbs-installer==2025.6.6
+pdfkit==1.0.0
+pefile==2023.2.7
+pillow==11.2.1
+pkginfo==1.12.1.2
+platformdirs==4.3.8
+playwright==1.52.0
+poetry==2.1.3
+poetry-core==2.1.3
+praw==7.8.1
+prawcore==2.4.0
+proto-plus==1.26.1
+protobuf==6.31.1
+psutil @ file:///C:/b/abs_b5gv3mn55h/croot/psutil_1736371546320/work
+psycopg2-binary==2.9.10
+pyasn1==0.6.1
+pyasn1_modules==0.4.2
+pycparser==2.22
+pydantic==2.11.7
+pydantic_core==2.33.2
+pyee==13.0.0
+pyinstaller==6.15.0
+pyinstaller-hooks-contrib==2025.8
+PyJWT==2.9.0
+pypandoc==1.15
+pyparsing==3.2.3
+pyproject_hooks==1.2.0
+PySocks==1.7.1
+python-box==7.3.2
+python-dateutil==2.9.0.post0
+python-docx==1.2.0
+python-dotenv==1.1.0
+python-jose==3.3.0
+python-multipart==0.0.6
+pytz @ file:///C:/b/abs_f8wdzeix0n/croot/pytz_1752135878094/work
+pywin32-ctypes==0.2.3
+RapidFuzz==3.13.0
+redis==6.4.0
+requests==2.32.4
+requests-oauthlib==2.0.0
+requests-toolbelt==1.0.0
+rsa==4.9.1
+selenium==4.35.0
+setuptools==80.9.0
+shellingham==1.5.4
+six==1.17.0
+sniffio==1.3.1
+sortedcontainers==2.4.0
+soupsieve==2.7
+SQLAlchemy @ file:///C:/b/abs_52irs3wj21/croot/sqlalchemy_1756710015498/work
+sqlparse==0.5.3
+starlette @ file:///C:/Users/dev-admin/buildout/perseverance-python-buildout/croot/starlette-recipe_1731715343652/work
+tomlkit==0.13.3
+tqdm==4.67.1
+trio==0.30.0
+trio-websocket==0.12.2
+trove-classifiers==2025.5.9.12
+typing-inspection==0.4.1
+typing_extensions @ file:///C:/b/abs_0ffjxtihug/croot/typing_extensions_1734714875646/work
+tzdata==2025.2
+undetected-chromedriver==3.5.5
+update-checker==0.18.0
+uritemplate==4.2.0
+urllib3==2.5.0
+uvicorn @ file:///C:/b/abs_e17rwqwbyy/croot/uvicorn-split_1751615749218/work
+virtualenv==20.31.2
+websocket-client==1.8.0
+websockets==15.0.1
+wheel==0.45.1
+win_inet_pton @ file:///C:/Users/dev-admin/perseverance-python-buildout/croot/win_inet_pton_1729038644686/work
+wsproto==1.2.0
+zstandard==0.23.0

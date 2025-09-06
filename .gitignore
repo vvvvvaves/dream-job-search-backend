@@ -1,7 +1,15 @@
+# Sensitive files
 client_secret.json
 creds.json
 spreadsheet_data.json
 debug.html
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Python cache
 __pycache__/
 *.pyc
 *.pyo
@@ -9,3 +17,11 @@ __pycache__/
 *.pyw
 *.pyz
 *.pywz
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log

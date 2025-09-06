@@ -7,24 +7,40 @@ from datetime import datetime, timedelta
 import pandas as pd
 
 class DreamJobSearch:
-    def __init__(self, client_secret_path, creds_path, spreadsheet_data_path=None, log_subscribers=None):
-        self.job_search_sheet_handler = SheetHandler(creds_path, client_secret_path)
-        self.job_posting_sheet_handler = SheetHandler(creds_path, client_secret_path)
-        self.linkedin_job_search_schema_path = "job_search_schema.json"
-        self.linkedin_job_posting_schema_path = "job_posting_schema.json"
+    def __init__(self, client_secret=None, creds=None, 
+                spreadsheet_data=None, 
+                save_spreadsheet_data=False, 
+                log_subscribers=None):
+        self.job_search_sheet_handler = SheetHandler(creds, client_secret)
+        self.job_posting_sheet_handler = SheetHandler(creds, client_secret)
+        self.linkedin_job_search_schema = os.environ.get("JOB_SEARCH_SCHEMA")
+        self.linkedin_job_posting_schema = os.environ.get("JOB_POSTING_SCHEMA")
         self.linkedin_job_search_scraper = None
         self.linkedin_job_posting_scraper = None
-        self.spreadsheet_data_path = spreadsheet_data_path
-        self.creds_path = creds_path
-        self.client_secret_path = client_secret_path
+        self.spreadsheet_data = spreadsheet_data
+        self.creds = creds
+        self.client_secret = client_secret
+        self.save_spreadsheet_data = save_spreadsheet_data
         self.log_subscribers = log_subscribers
-        
         # Add logging method        
         self.log_message("🚀 Initializing DreamJobSearch...")
         
-        if os.path.exists(self.spreadsheet_data_path):
-            with open(self.spreadsheet_data_path, "r") as f:
+        if isinstance(self.spreadsheet_data, str) and os.path.exists(self.spreadsheet_data):
+            with open(self.spreadsheet_data, "r") as f:
                 self.spreadsheet_data = json.load(f)
+        elif isinstance(self.spreadsheet_data, str):
+            try:
+                self.spreadsheet_data = json.loads(self.spreadsheet_data)
+            except json.JSONDecodeError:
+                self.spreadsheet_data = None
+                self.log_message("Invalid spreadsheet data format. Will create new spreadsheet.")
+        elif isinstance(self.spreadsheet_data, dict):
+            pass
+        else:
+            self.spreadsheet_data = None
+            self.log_message("Invalid spreadsheet data format. Will create new spreadsheet.")
+
+        if self.spreadsheet_data:
             self.job_search_sheet_handler.spreadsheet_id = self.spreadsheet_data["spreadsheet_id"]
             self.job_posting_sheet_handler.spreadsheet_id = self.spreadsheet_data["spreadsheet_id"]
             self.job_search_sheet_handler.sheet_id = self.spreadsheet_data["job_search_sheet_id"]
@@ -34,7 +50,7 @@ class DreamJobSearch:
             self.log_message(f"📊 Loaded existing sheet with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}")
         else:
             self.log_message("📝 Creating new spreadsheet...")
-            self.setup_sheet()
+            self.spreadsheet_data = self.setup_sheet(save_spreadsheet_data=self.save_spreadsheet_data)
         
         self.setup_scrapers()
         self.log_message("🎉 DreamJobSearch initialization completed!")
@@ -115,17 +131,17 @@ class DreamJobSearch:
         
         return filtered_items
 
-    def setup_sheet(self, title = "Dream Job Search"):
-        self.log_message(f"📝 Creating new spreadsheet: {title}")
-        self.job_search_sheet_handler.create_spreadsheet(title)
+    def setup_sheet(self, save_spreadsheet_data=False):
+        self.log_message(f"📝 Creating new spreadsheet: Dream Job Search")
+        self.job_search_sheet_handler.create_spreadsheet("Dream Job Search")
         self.log_message("📊 Adding Job Search Results sheet...")
         self.job_search_sheet_handler.add_sheet_to_spreadsheet(sheet_title="Job Search Results")
-        self.job_search_sheet_handler.create_table_from_schema(self.linkedin_job_search_schema_path, "Job Search Results", 0, 0)
+        self.job_search_sheet_handler.create_table_from_schema(self.linkedin_job_search_schema, "Job Search Results", 0, 0)
         
         self.job_posting_sheet_handler.spreadsheet_id = self.job_search_sheet_handler.spreadsheet_id
         self.log_message("📄 Adding Job Postings sheet...")
         self.job_posting_sheet_handler.add_sheet_to_spreadsheet(sheet_title="Job Postings")
-        self.job_posting_sheet_handler.create_table_from_schema(self.linkedin_job_posting_schema_path, "Job Postings", 0, 0)
+        self.job_posting_sheet_handler.create_table_from_schema(self.linkedin_job_posting_schema, "Job Postings", 0, 0)
 
 
         self.spreadsheet_data = {
@@ -136,9 +152,11 @@ class DreamJobSearch:
             "job_posting_columns": self.job_posting_sheet_handler.get_columns()
         }
 
-        with open(self.spreadsheet_data_path, "w") as f:
-            json.dump(self.spreadsheet_data, f)
-        self.log_message(f"✅ Created sheet '{title}' with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}")
+        if save_spreadsheet_data:
+            with open(self.spreadsheet_data, "w") as f:
+                json.dump(self.spreadsheet_data, f)
+        self.log_message(f"✅ Created sheet 'Dream Job Search' with spreadsheet_id={self.job_search_sheet_handler.spreadsheet_id}")
+        return self.spreadsheet_data
 
     def setup_scrapers(self):
         self.log_message("🔧 Setting up LinkedIn scrapers...")
@@ -355,7 +373,7 @@ class DreamJobSearch:
         return job_posting_df[["score", "matched_keywords", "link", "job_title", "job_company", "job_location"]].sort_values(by="score", ascending=False)
 
 def main():
-    dream_job_search = DreamJobSearch(creds_path="creds.json", client_secret_path="client_secret.json", spreadsheet_data_path="spreadsheet_data.json")
+    dream_job_search = DreamJobSearch(creds=None, client_secret=None, spreadsheet_data="spreadsheet_data.json")
     dream_job_search.update_database(locations=["Poland"], queries=["AI Agent", "AI Engineer", "AI Developer", "AI Specialist", "AI Analyst", "AI Consultant", "AI Trainer", "AI Researcher", "AI Strategist", "AI Architect", "AI Safety", "Responsible AI"])
     results = dream_job_search.score_job_postings(keywords=["python", "React", "Azure", "prompt engineering", "web scraping", "selenium", "playwright", "beautifulsoup", "beautiful soup", "beautifulsoup4", "beautifulsoup3", "beautifulsoup2", "beautifulsoup1", "beautifulsoup0", "beautifulsoup-4", "beautifulsoup-3", "beautifulsoup-2", "beautifulsoup-1", "beautifulsoup-0"])
     results = results[["score", "matched_keywords", "link"]].sort_values(by="score", ascending=False).head(10)
